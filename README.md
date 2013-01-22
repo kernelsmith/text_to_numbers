@@ -1,7 +1,7 @@
 text_to_numbers
 ===============
 
-Converts string text into Numbers (Fixnum/Bignum)
+Converts string text into Numbers (Fixnum/Bignum/Float)
 
 ```Ruby
 
