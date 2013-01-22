@@ -1,5 +1,5 @@
 module TextToNumbers
-  
+
   # Count to ten!
   _ones = %w(zero one two three four five six seven eight nine ten)
   # Tens - with placeholders
@@ -16,7 +16,7 @@ module TextToNumbers
     'septentrigintillion', 'octotrigintillion', 'novemtrigintillion', 'quadragintillion', 'unquadragintillion',
     'duoquadragintillion', 'trequadragintillion', 'quattuorquadragintillion', 'quinquadragintillion', 'sesquadragintillion',
     'septenquadragintillion', 'octoquadragintillion', 'novenquadragintillion', 'quinquagintillion']
-  
+
   # first, let's convert the word arrays into hashes to speed up lookups since searching an array is O(n) but
   # searching a hash is O(1).  this will result in e.g. self::ONES = {"nine" => 9, "eight" => 8... etc} but
   # order, of course, is not guaranteed.
@@ -28,12 +28,20 @@ module TextToNumbers
   self::LOTS = Hash[*_lots.each_with_index.to_a.flatten]
 
   #
-  # returns an integer or float representing the human readable string number
+  # returns an integer-esque or float-esque Number representing the human readable string number
+  # @return [Fixnum,Bignum,Float] the number representing self
   #
   def to_numbers
-    # cleanup & normalize the input to avoid bad matches
-    # remove extra spaces, downcase, replace any '-'s (like twenty-one), replace 'and's and '&'s, squeeze
-    str = strip.squeeze(' ').downcase.gsub('-',' ').gsub(/ and | & /,' ').squeeze(' ')
+    str = strip
+    # handle and cleanup negative indicators
+    if str =~ /^negative *|- */i
+      str = str.sub($&, '')
+      sign = -1
+    end
+    # cleanup & normalize the remaing text to avoid bad matches
+    # remove extra spaces, downcase, replace any '-'s (like twenty-one), replace 'and's and '&'s, and
+    # squeeze.  We sqeeze twice to avoid having crazy looking regexp's with *'s all over the place
+    str = str.squeeze(' ').downcase.gsub('-',' ').gsub(/ and | & /,' ').squeeze(' ')
     # it's very common to get "fourty" instead of "forty" so we're gonna fix that
     str.gsub!(/fourty/,"forty")
     words = str.split(' ')
@@ -42,16 +50,11 @@ module TextToNumbers
     sign = 1
 
     words.each_with_index do |word, idx|
-      if word =~ /^negative/i
-        sign = -1
-        next
-      end
-
       # Handle the case where someone gives us "9 million" instead of "nine million"
       f_or_i = differentiate_float_int(word)
       if word =~ /^0+\.*0*$/ # since "a".to_i returns 0, not nil
         # treat "0", "0.0", "0..0", "00.00" etc all as 0 , last one is kind of a bizarre case
-        running = 0 
+        running = 0
         next
       # otherwise we try to determine if float string or integer string
       elsif ( not f_or_i == 0 and not f_or_i == 0.0 )
@@ -90,7 +93,7 @@ module TextToNumbers
         groups << running.to_i
         groups << "."
         running = ''
-      else 
+      else
         # could not recognize this gibberish, do nothing and hope we can still make out the rest
       end
     end # end words.each
